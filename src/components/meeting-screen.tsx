@@ -39,7 +39,7 @@ import { fixPronouns } from "@/lib/pronouns";
 import { getConversationType, pronounStyle } from "@/lib/conversation";
 import { voiceFor } from "@/lib/voices";
 import type { Gender } from "@/lib/audio/pitch";
-import { AUTO, getLangPair, langName, setLangPair, type LangPair } from "@/lib/languages";
+import { getLangPair, setLangPair, type LangPair } from "@/lib/languages";
 import { LanguageBar } from "./language-bar";
 import { copyText } from "@/lib/browser/clipboard";
 import { isMine } from "./bubble";
