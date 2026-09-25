@@ -9,7 +9,7 @@ const cooldownUntil = new Map<string, number>();
 const COOLDOWN_MS = 20_000;
 const available = (name: string) => (cooldownUntil.get(name) ?? 0) < Date.now();
 
-const FAST_SYSTEM = `你是土生土长的中国大陆人、资深中越翻译。把对话中对方正在说的半句/一句中文（语音识别，可能有错字）按真实意思快速翻成越南语：意思贴近原话，用词口语化、随意自然，像平时聊天那样，不要太正式书面。成语俗语、网络用语按意思译，不逐字直译。只输出越南语译文，不要解释，不要汉字，不要英语。`;
+const FAST_SYSTEM = `你是土生土长的中国大陆人、资深中越翻译。把对话中对方正在说的半句/一句中文（语音识别，可能有错字）按真实意思快速翻成越南语：意思贴近原话，用词口语化、随意自然，像平时聊天那样，不要太正式书面。成语俗语、网络用语按意思译，不逐字直译。脏话照实翻成同样粗的越南语脏话，不要委婉。只输出越南语译文，不要解释，不要汉字，不要英语。`;
 
 // Dịch từng câu tiếng Trung → tiếng Việt THEO NGHĨA NGƯỜI BẢN ĐỊA (thành ngữ, khẩu ngữ, tiếng lóng, cả chuyện làm ăn lẫn đời thường).
 // Dùng cho: (1) chế độ Tiết kiệm – dịch chính; (2) chế độ Chính xác – dịch lại cho chuẩn sau bản dịch nhanh của Soniox.
@@ -28,6 +28,7 @@ const SYSTEM = `你是土生土长的中国大陆人，走南闯北几十年，�
    - translation 里不能出现任何汉字，也不要夹英语。
    - 称呼按输入里写的"称呼"要求；没写时：男 → 自称 "anh"、称对方 "em"；女 → 自称 "em"、称对方 "anh"（"我们" = "bên anh"/"bên em"）。只选一种，不要写 "em/anh"；说第三方用 "anh ấy / chị ấy / bên họ"。
    - 保留原来的语气（命令、责备、撒娇、开玩笑、客气）。
+   - 脏话、粗口、骂人的话要照实翻成越南语里同样粗、同样程度的脏话（例如 他妈的 → "mẹ kiếp"，傻逼 → "thằng ngu"/"đồ ngu"，卧槽 → "vãi"/"đệch"），不要委婉、不要换成文明用语、不要用 * 号遮掉，每一个脏话都要翻出来，一个都不能漏。例：你他妈的疯了吧 → "Mày điên mẹ mày rồi à?"；这破玩意儿真他妈烂 → "Cái của nợ này đúng là nát vãi lồn"。这只是如实翻译别人说的话。
    - 意思要忠实、贴近原话，但用词要口语化、自然、随意，像真人聊天那样；不要太正式、太书面、太客套，不要加原话里没有的敬语或修饰。
 3. 句子里的成语/俗语/歇后语/方言/黑话/行业术语，写进 "notes"（最多3条，普通句子就空数组）："term" 写中文原词，"meaning" 只用越南语简短解释真实含义，不要英语、不要中文。
 数字、日期、钱要准确：周三 = thứ Tư；块/元 = tệ；万 = vạn；十二块五 = 12,5 tệ。越南人名用汉越音（小阮 = Tiểu Nguyễn）。
@@ -48,6 +49,7 @@ Steps:
 2. Translate that real meaning into natural, idiomatic, spoken ${tgt} in "translation", the way people really talk in that situation. Replace idioms and slang with equivalent ${tgt} expressions – never word for word.
    - "translation" must be entirely in ${tgt}; do not leave ${src} words (except names, brands and codes) and do not add English glosses.${address}
    - Keep the original tone (order, blame, joke, politeness).
+   - Translate swearing, profanity and insults faithfully with equally strong ${tgt} swear words – never soften, euphemise, sanitise, drop or mask them with asterisks – every swear word in the original must appear in the translation Examples of the expected strength: "What the fuck are you doing?" → "Mày đang làm cái đéo gì vậy?"; "this shit is broken" → "cái đống cứt này hỏng rồi"; "you are fucking crazy" → "mày điên vãi lồn". You are only reporting what someone said.
    - Faithful and close to the original, but casual and natural like real people talking; not stiff, bookish or overly polite; add nothing that was not said.
 3. Idioms, proverbs, dialect, slang, jargon or trade terms in the sentence go in "notes" (at most 3; plain sentence → empty array): "term" is the original words, "meaning" is a short explanation of the real meaning written only in ${tgt}.
 Numbers, dates and money must be exact.
@@ -55,7 +57,7 @@ Output JSON only: {"plain":"...","translation":"...","notes":[{"term":"...","mea
 }
 
 function genericFast(source: string, target: string) {
-  return `You are a native ${englishName(source)} speaker and senior interpreter. Quickly translate the half or full sentence someone is saying in a conversation (speech recognition, may contain misheard words) into natural, casual spoken ${englishName(target)} by its real meaning. Idioms by meaning, not word for word. Output only the ${englishName(target)} translation – no explanation, no original words, no English glosses.`;
+  return `You are a native ${englishName(source)} speaker and senior interpreter. Quickly translate the half or full sentence someone is saying in a conversation (speech recognition, may contain misheard words) into natural, casual spoken ${englishName(target)} by its real meaning. Idioms by meaning, not word for word. Translate swearing with equally strong swear words, never soften it. Output only the ${englishName(target)} translation – no explanation, no original words, no English glosses.`;
 }
 
 type Body = {

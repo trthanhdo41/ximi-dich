@@ -56,7 +56,8 @@ export function backgroundFor(pair: LangPair, conversation: ConversationType = "
   return (
     `${scene} One side speaks ${partner}, the other speaks ${mine}.${zh} ` +
     `They speak casually and naturally, with idioms, colloquialisms and slang. ` +
-    `Translate by the intended meaning, as a native speaker would understand it, never word by word.` +
+    `Translate by the intended meaning, as a native speaker would understand it, never word by word. ` +
+    `Translate swearing and profanity faithfully with equally strong words; do not soften or censor it.` +
     pronouns
   );
 }
