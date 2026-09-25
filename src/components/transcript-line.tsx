@@ -95,6 +95,11 @@ function LineView({
   const emphasized = latest || !seg.closed;
   // Pinyin chỉ có với tiếng Trung.
   const py = useMemo(() => (pinyin && seg.language === "zh" ? toPinyin(original) : ""), [pinyin, seg.language, original]);
+  // Câu của mình dịch sang tiếng Trung: có pinyin để đọc theo.
+  const myPy = useMemo(
+    () => (pinyin && mine && getLangPair().partner === "zh" && translation ? toPinyin(translation) : ""),
+    [pinyin, mine, translation],
+  );
 
   const copy = async () => {
     if (await onCopy(seg)) {
@@ -215,6 +220,7 @@ function LineView({
             <RevealText still={seg.closed} final={seg.translationFinal} partial={seg.translationPartial} />
           </p>
         )}
+        {myPy && <p className="mt-0.5 text-[13px] leading-relaxed text-fg-3 italic">{myPy}</p>}
 
         {/* Câu gốc tiếng Trung nhỏ, dịu bên dưới */}
         {!mine && original && (
@@ -241,7 +247,7 @@ function LineView({
           <div className="mt-2 flex flex-wrap gap-1.5">
             {mentioned && (
               <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[12px] font-semibold text-on-accent">
-                <BellRingIcon className="size-3.5" /> Nhắc tên em
+                <BellRingIcon className="size-3.5" /> Nhắc tên bạn
               </span>
             )}
             {highlights.map((h, i) => (

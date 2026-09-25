@@ -28,7 +28,8 @@ import { loadPinyin } from "@/lib/pinyin";
 import { CONVERSATIONS, getConversationType, type ConversationType } from "@/lib/conversation";
 import { getTtsPlayer } from "@/lib/browser/tts-player";
 import { voicesFor } from "@/lib/voices";
-import { AUTO, getLangPair, LANGUAGES, langName, POPULAR_CODES, setLangPair, type LangPair } from "@/lib/languages";
+import { AUTO, getLangPair, langName, setLangPair, type LangPair } from "@/lib/languages";
+import { LanguageOptions } from "./language-bar";
 import { Credit } from "./brand";
 import {
   BellRingIcon,
@@ -104,14 +105,6 @@ function LanguageSelect({
   exclude?: string;
   allowAuto?: boolean;
 }) {
-  const list = LANGUAGES.filter((l) => l.code !== exclude);
-  const popular = POPULAR_CODES.map((c) => list.find((l) => l.code === c)).filter((l) => !!l);
-  const others = list.filter((l) => !POPULAR_CODES.includes(l.code)).sort((a, b) => a.name.localeCompare(b.name, "vi"));
-  const option = (l: (typeof LANGUAGES)[number]) => (
-    <option key={l.code} value={l.code}>
-      {l.name === l.native ? l.name : `${l.name} · ${l.native}`}
-    </option>
-  );
   return (
     <label htmlFor={id} className="block">
       <span className="text-[13px] font-medium text-fg-2">{label}</span>
@@ -122,9 +115,7 @@ function LanguageSelect({
           onChange={(e) => onChange(e.target.value)}
           className="h-12 w-full appearance-none rounded-2xl bg-surface-2 pr-10 pl-4 text-[16px] font-medium ring-1 ring-line outline-none focus:ring-2 focus:ring-accent"
         >
-          {allowAuto && <option value={AUTO}>Nhiều thứ tiếng (tự nhận)</option>}
-          <optgroup label="Hay dùng">{popular.map(option)}</optgroup>
-          <optgroup label="Tất cả">{others.map(option)}</optgroup>
+          <LanguageOptions exclude={exclude} allowAuto={allowAuto} />
         </select>
         <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-3.5 size-5 -translate-y-1/2 text-fg-3" />
       </span>
@@ -312,7 +303,7 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
         <Label icon={<GlobeIcon className="size-4" />}>Ngôn ngữ</Label>
         <p className="mt-1 text-[13px] leading-relaxed text-fg-2">
           Chọn đúng thứ tiếng người kia nói để app nghe chính xác nhất. App dịch cả hai chiều: lời người kia sang tiếng của
-          em, lời em sang tiếng của người kia.
+          bạn, lời bạn sang tiếng của người kia.
         </p>
         <div className="mt-3 grid gap-3">
           <LanguageSelect
@@ -325,7 +316,7 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
           />
           <LanguageSelect
             id="my-language"
-            label="Em nói (tiếng của em)"
+            label="Bạn nói"
             value={pair.mine}
             exclude={pair.partner}
             onChange={(mine) => changePair({ ...pair, mine })}
@@ -381,7 +372,7 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
           icon={<SpeakerIcon className="size-4" />}
           title="Tự đọc to bản dịch"
         >
-          Người kia nói tới đâu, app đọc bản dịch cho em nghe tới đó bằng giọng AI tự nhiên. Giọng đọc tính tiền theo thời lượng
+          Người kia nói tới đâu, app đọc bản dịch cho bạn nghe tới đó bằng giọng AI tự nhiên. Giọng đọc tính tiền theo thời lượng
           đọc (~18.000đ mỗi giờ giọng được đọc) – không cần thì tắt ở đây hoặc bấm nút loa trên cùng để đỡ tốn tiền.
         </SwitchRow>
         {autoRead && (
@@ -397,18 +388,18 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
               setReadMine(!readMine);
             }}
             icon={<ChatsIcon className="size-4" />}
-            title="Đọc cả lời em cho người kia nghe"
+            title="Đọc lời của bạn cho người kia nghe"
           >
-            Em nói xong một câu, app dịch sang tiếng của người kia và đọc to ra loa (micro tạm ngắt trong lúc đọc).
+            Bạn nói xong một câu, app dịch sang tiếng của người kia và đọc to ra loa (micro tạm ngắt trong lúc đọc).
           </SwitchRow>
           <Disclosure title="Chọn giọng đọc">
             <div className="space-y-3">
-              <VoicePicker id="tts-voice" label="Đọc cho em – người nói nữ" lang={pair.mine} storageKey={TTS_VOICE_KEY} gender="female" />
-              <VoicePicker id="tts-voice-m" label="Đọc cho em – người nói nam" lang={pair.mine} storageKey={TTS_VOICE_MALE_KEY} gender="male" />
+              <VoicePicker id="tts-voice" label="Đọc cho bạn – người nói nữ" lang={pair.mine} storageKey={TTS_VOICE_KEY} gender="female" />
+              <VoicePicker id="tts-voice-m" label="Đọc cho bạn – người nói nam" lang={pair.mine} storageKey={TTS_VOICE_MALE_KEY} gender="male" />
               {readMine && pair.partner !== AUTO && (
                 <>
-                  <VoicePicker id="partner-voice" label="Đọc cho người kia – em là nữ" lang={pair.partner} storageKey={PARTNER_VOICE_KEY} gender="female" />
-                  <VoicePicker id="partner-voice-m" label="Đọc cho người kia – em là nam" lang={pair.partner} storageKey={PARTNER_VOICE_MALE_KEY} gender="male" />
+                  <VoicePicker id="partner-voice" label="Đọc cho người kia – bạn là nữ" lang={pair.partner} storageKey={PARTNER_VOICE_KEY} gender="female" />
+                  <VoicePicker id="partner-voice-m" label="Đọc cho người kia – bạn là nam" lang={pair.partner} storageKey={PARTNER_VOICE_MALE_KEY} gender="male" />
                 </>
               )}
             </div>
@@ -510,13 +501,13 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
           icon={<PinyinIcon className="size-4" />}
           title="Hiện phiên âm pinyin"
         >
-          Hiện cách đọc pinyin ngay dưới câu tiếng Trung, để em đọc theo hoặc tập nói. Chạy ngay trên máy, không tốn tiền.
+          Hiện cách đọc pinyin ngay dưới câu tiếng Trung, để đọc theo hoặc tập nói. Chạy ngay trên máy, không tốn tiền.
         </SwitchRow>
       </motion.section>
       )}
 
       <motion.section variants={item}>
-        <Disclosure title="Nâng cao" hint="Tên riêng, bối cảnh, tên của em, dịch lại chuẩn nghĩa, tự tạm dừng, chế độ nghe">
+        <Disclosure title="Nâng cao" hint="Tên riêng, bối cảnh, tên của bạn, dịch lại chuẩn nghĩa, tự tạm dừng, chế độ nghe">
           <div className="space-y-6">
       <section>
         <Label htmlFor="glossary" icon={<LanguagesIcon className="size-4" />}>
@@ -565,10 +556,10 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
 
       <section>
         <Label htmlFor="my-names" icon={<BellRingIcon className="size-4" />}>
-          Tên của em (báo khi có người gọi)
+          Tên của bạn (báo khi có người gọi)
         </Label>
         <p className="mt-1 text-[13px] leading-relaxed text-fg-2">
-          Cách mọi người hay gọi em, cách nhau bằng dấu phẩy. Khi có người nhắc tới, máy sẽ rung và hiện thông báo.
+          Cách mọi người hay gọi bạn, cách nhau bằng dấu phẩy. Khi có người nhắc tới, máy sẽ rung và hiện thông báo.
         </p>
         <input
           id="my-names"

@@ -109,7 +109,7 @@ export function SuggestPanel({
         <input
           value={intent}
           onChange={(e) => setIntent(e.target.value)}
-          placeholder="Em muốn nói ý gì? (không bắt buộc)"
+          placeholder="Bạn muốn nói ý gì? (không bắt buộc)"
           className="h-12 min-w-0 flex-1 rounded-2xl bg-surface-2 px-4 text-[16px] ring-1 ring-line outline-none placeholder:text-fg-3 focus:ring-2 focus:ring-accent"
         />
         <motion.button

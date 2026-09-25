@@ -336,7 +336,7 @@ export function useLiveTranslator({
         .filter((s) => s.id < id && s.closed && s.originalFinal.trim())
         .slice(-6)
         .map((s) => {
-          const who = s.language === b.languages.mine ? "Nhân viên (bên mình)" : `Người ${s.speaker ?? "?"}`;
+          const who = s.language === b.languages.mine ? "Bên mình" : `Người ${s.speaker ?? "?"}`;
           const sex = s.gender === "male" ? " (nam)" : s.gender === "female" ? " (nữ)" : "";
           const tr = s.translationFinal.trim() ? ` → ${s.translationFinal.trim().slice(0, 110)}` : "";
           return `${who}${sex}: ${s.originalFinal.trim().slice(0, 130)}${tr}`;
@@ -744,6 +744,38 @@ export function useLiveTranslator({
     wakeRef.current = wake;
   }, [wake]);
 
+  /** Đổi cặp ngôn ngữ ngay: chốt câu đang nói dở; đang nghe thì nối lại Soniox với cấu hình mới (không mất chữ). */
+  const applyLanguages = useCallback(() => {
+    const b = builderRef.current;
+    b.close(performance.now());
+    b.languages = getLangPair();
+    publish();
+    if (!runningRef.current) return;
+    if (engineRef.current) {
+      // Chế độ tiết kiệm: nhận giọng của máy chỉ nghe một thứ tiếng → nghe lại bằng thứ tiếng mới.
+      stop();
+      void start();
+      return;
+    }
+    if (pausedRef.current) return; // nghe tiếp sẽ dùng cặp mới
+    clearRetry();
+    const session = sessionRef.current;
+    sessionRef.current = null;
+    if (session?.isOpen) {
+      session.finish();
+      finishingRef.current = session;
+      setTimeout(() => {
+        session.close();
+        if (finishingRef.current === session) finishingRef.current = null;
+      }, 3000);
+    } else {
+      session?.close();
+    }
+    attemptRef.current = 0;
+    setState("starting");
+    void connectRef.current();
+  }, [publish, start, stop]);
+
   // Kiểm tra im lặng mỗi 5 giây (chỉ chế độ Soniox – chế độ tiết kiệm không tốn tiền nghe).
   useEffect(() => {
     const t = setInterval(() => {
@@ -861,5 +893,5 @@ export function useLiveTranslator({
     [],
   );
 
-  return { state, segments, error, level, analyser, startedAt, signal, wake, toggleStar, dropSegment, genders, liveGender, start, stop, resume, reset, setMuted, dismissError: () => setError(null) };
+  return { state, segments, error, level, analyser, startedAt, signal, wake, toggleStar, dropSegment, genders, liveGender, applyLanguages, start, stop, resume, reset, setMuted, dismissError: () => setError(null) };
 }

@@ -64,6 +64,11 @@ function BubbleView({ seg, name, continued, onRename, mentioned, pinyin, onToggl
   const original = seg.originalFinal + seg.originalPartial;
   // Pinyin chỉ có với tiếng Trung.
   const py = useMemo(() => (pinyin && seg.language === "zh" ? toPinyin(original) : ""), [pinyin, seg.language, original]);
+  // Câu của mình dịch sang tiếng Trung: có pinyin để đọc theo.
+  const myPy = useMemo(
+    () => (pinyin && mine && getLangPair().partner === "zh" && translation ? toPinyin(translation) : ""),
+    [pinyin, mine, translation],
+  );
   // Nhãn ngày giờ / tiền / số lượng lấy từ câu tiếng Việt (bản dịch, hoặc câu gốc nếu mình nói).
   const highlights = seg.closed ? extractHighlights(mine ? seg.originalFinal : seg.translationFinal) : [];
 
@@ -172,6 +177,7 @@ function BubbleView({ seg, name, continued, onRename, mentioned, pinyin, onToggl
                   <RevealText still={seg.closed} final={seg.translationFinal} partial={seg.translationPartial} />
                 </p>
               )}
+              {myPy && <p className="text-[13px] leading-relaxed text-fg-3 italic">{myPy}</p>}
             </>
           ) : (
             <>
@@ -255,7 +261,7 @@ function BubbleView({ seg, name, continued, onRename, mentioned, pinyin, onToggl
                   animate={{ scale: [0.6, 1.12, 1], opacity: 1 }}
                   className="rounded-full bg-accent px-2.5 py-1 text-[12px] font-semibold text-on-accent"
                 >
-                  <BellRingIcon className="-mt-px mr-1 inline size-3.5" />Nhắc tên em
+                  <BellRingIcon className="-mt-px mr-1 inline size-3.5" />Nhắc tên bạn
                 </motion.span>
               )}
               {highlights.map((h, i) => (

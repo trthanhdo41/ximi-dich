@@ -4,6 +4,7 @@
 import {
   AlarmClock,
   ArrowDown,
+  ArrowRightLeft,
   AudioLines,
   BadgeCheck,
   Bell,
@@ -68,6 +69,7 @@ export const SpeakerOffIcon = wrap(VolumeX);
 export const SettingsIcon = wrap(SlidersHorizontal);
 export const PlusIcon = wrap(Plus, 2.2);
 export const ArrowDownIcon = wrap(ArrowDown, 2.2);
+export const SwapIcon = wrap(ArrowRightLeft, 2.2);
 export const WifiOffIcon = wrap(WifiOff);
 export const LockIcon = wrap(Lock);
 export const SparkleIcon = wrap(Sparkles);

@@ -136,7 +136,7 @@ export function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", stiffness: 500, damping: 20 }}
                   >
-                    <CheckIcon className="size-6" /> Chào em!
+                    <CheckIcon className="size-6" /> Chào bạn!
                   </motion.span>
                 ) : (
                   <motion.span key="go" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>

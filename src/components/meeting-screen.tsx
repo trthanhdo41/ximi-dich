@@ -39,7 +39,8 @@ import { fixPronouns } from "@/lib/pronouns";
 import { getConversationType, pronounStyle } from "@/lib/conversation";
 import { voiceFor } from "@/lib/voices";
 import type { Gender } from "@/lib/audio/pitch";
-import { AUTO, getLangPair, langName } from "@/lib/languages";
+import { AUTO, getLangPair, langName, setLangPair, type LangPair } from "@/lib/languages";
+import { LanguageBar } from "./language-bar";
 import { copyText } from "@/lib/browser/clipboard";
 import { isMine } from "./bubble";
 import { MicButton } from "./mic-button";
@@ -156,7 +157,7 @@ export function MeetingScreen() {
   const [view, setView] = useState<TranscriptView>(() => (readStorage(VIEW_KEY) === "bubbles" ? "bubbles" : "lines"));
   const [pinyinOn, setPinyinOn] = useState(() => readStorage(PINYIN_KEY, "1") !== "0");
   // Cặp ngôn ngữ đổi trong Cài đặt → vẽ lại (dòng trạng thái, màn hình chờ…).
-  const [, setPair] = useState(getLangPair);
+  const [pair, setPair] = useState(getLangPair);
   // Tự đọc to bản dịch khi đối tác nói xong (nút loa trên thanh trên, tắt/bật trong Cài đặt).
   const [autoRead, setAutoRead] = useState(() => readStorage(AUTO_READ_KEY, "1") !== "0");
   const [reading, setReading] = useState(false);
@@ -290,7 +291,7 @@ export function MeetingScreen() {
       toast({
         id: `mention-${seg.id}`,
         kind: "info",
-        title: "Có người vừa nhắc tên em",
+        title: "Có người vừa nhắc tên bạn",
         icon: <BellRingIcon className="size-[18px]" />,
         message: seg.translationFinal || seg.originalFinal,
         duration: 7000,
@@ -618,6 +619,14 @@ export function MeetingScreen() {
     else void live.start();
   };
 
+  // Đổi ngôn ngữ nhanh từ thanh trên màn hình chính (đang nghe thì tự nối lại với cặp mới).
+  const { applyLanguages } = live;
+  const changePair = (next: LangPair) => {
+    setLangPair(next);
+    setPair(next);
+    applyLanguages();
+  };
+
   const toggleAutoRead = () => {
     const next = !autoRead;
     setAutoRead(next);
@@ -714,6 +723,13 @@ export function MeetingScreen() {
           <SettingsIcon className="size-5" />
         </HeaderButton>
       </header>
+
+      {/* Chọn nhanh ngôn ngữ: [tiếng của bạn] ⇄ [tiếng người kia] */}
+      <div className="z-20 px-3 pb-2 sm:px-4">
+        <div className="mx-auto max-w-2xl">
+          <LanguageBar pair={pair} onChange={changePair} />
+        </div>
+      </div>
 
 
       {/* Nội dung */}
@@ -1063,13 +1079,6 @@ const STATUS_TEXT: Record<LiveState, string> = {
   paused: "Tạm dừng · phòng im lặng",
 };
 
-/** "Trung → Việt", "Anh → Việt", "Mọi thứ tiếng → Việt"… */
-function pairLabel() {
-  const { partner, mine } = getLangPair();
-  const short = (code: string) => langName(code).replace(/^Tiếng /, "");
-  return `${partner === AUTO ? "Mọi thứ tiếng" : short(partner)} → ${short(mine)}`;
-}
-
 function StatusLine({
   state,
   hasContent,
@@ -1084,7 +1093,7 @@ function StatusLine({
     state === "idle"
       ? hasContent
         ? "Đã dừng"
-        : pairLabel()
+        : "Sẵn sàng"
       : state === "live"
         ? `Đang nghe · ${signalLabel(signal)}`
         : STATUS_TEXT[state];
