@@ -1,0 +1,8 @@
+# Không tải khoá bí mật và file tạm lên Vercel (env được khai báo riêng trong Vercel).
+.env*
+!.env.example
+node_modules
+.next
+.vercel
+tsconfig.tsbuildinfo
+.DS_Store
