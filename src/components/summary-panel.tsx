@@ -8,7 +8,7 @@ import { getLangPair, langFont, langInline, langName, language } from "@/lib/lan
 import { getConversationType } from "@/lib/conversation";
 import { GLOSSARY_KEY, MEETING_CONTEXT_KEY, readStorage } from "@/lib/browser/storage";
 import { copyText } from "@/lib/browser/clipboard";
-import { CheckIcon, CopyIcon, RefreshIcon, ShareIcon } from "./icons";
+import { CheckIcon, CopyIcon, RefreshIcon, ShareIcon, SparkleIcon } from "./icons";
 import { Seal } from "./brand";
 import { toVietnamese } from "@/lib/errors";
 import type { SavedSummary } from "@/lib/meeting/storage";
@@ -264,6 +264,7 @@ export function SummaryPanel({
   running,
   names,
   onShare,
+  onAiExport,
 }: {
   api: SummaryApi;
   segments: Segment[];
@@ -271,6 +272,8 @@ export function SummaryPanel({
   names: SpeakerNames;
   /** Chia sẻ biên bản họp (tóm tắt + toàn bộ nội dung). */
   onShare?: () => void;
+  /** Chép cả cuộc trò chuyện + lời nhờ để dán vào ChatGPT / Claude (báo giá, hợp đồng…). */
+  onAiExport?: () => void;
 }) {
   const { summary, run, translate } = api;
   const [lang, setLang] = useState<Lang>("vi");
@@ -306,6 +309,7 @@ export function SummaryPanel({
             ? `${summary.inProgress ? "Đến" : "Lúc"} ${timeLabel(summary.at)} · ${summary.count} câu${summary.inProgress ? " · đang nói" : ""}`
             : ""}
         </p>
+        {partner !== getLangPair().mine && (
         <div className="grid shrink-0 grid-cols-2 rounded-xl bg-surface-2 p-0.5 text-[13px] ring-1 ring-line">
           {(["vi", "zh"] as const).map((l) => (
             <button
@@ -325,6 +329,7 @@ export function SummaryPanel({
             </button>
           ))}
         </div>
+        )}
       </div>
 
       <div className="mt-5 min-h-[40dvh]">
@@ -395,6 +400,15 @@ export function SummaryPanel({
             className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-2xl text-[14px] font-semibold text-accent ring-1 ring-accent/30"
           >
             <ShareIcon className="size-[18px]" /> Chia sẻ nội dung (Zalo, Messenger…)
+          </motion.button>
+        )}
+        {onAiExport && countSpoken(segments) > 0 && (
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onAiExport}
+            className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-2xl bg-surface-2 text-[14px] font-semibold ring-1 ring-line"
+          >
+            <SparkleIcon className="size-[18px] text-accent" /> Gửi cho ChatGPT / Claude (báo giá, hợp đồng…)
           </motion.button>
         )}
       </div>

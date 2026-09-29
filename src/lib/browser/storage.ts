@@ -50,3 +50,9 @@ export const TTS_VOICE_MALE_KEY = "ttsVoiceMale";
 export const PARTNER_VOICE_MALE_KEY = "partnerVoiceMale";
 /** Kiểu trò chuyện: "auto" (tự hiểu theo nội dung – mặc định), "work", "couple", "friends". */
 export const CONVERSATION_KEY = "conversationType";
+/** Mẫu lời nhờ AI người dùng đã sửa (JSON { id: lời nhờ }). */
+export const AI_PROMPTS_KEY = "aiPrompts";
+/** Mẫu "Gửi cho AI" chọn lần gần nhất. */
+export const AI_TEMPLATE_KEY = "aiTemplate";
+/** Nguồn âm thanh: "mic" (mặc định) hoặc "tab" (micro + âm thanh một tab như Google Meet – chỉ máy tính). */
+export const AUDIO_SOURCE_KEY = "audioSource";

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useLiveTranslator, type Engine, type LiveState, type Signal } from "@/lib/meeting/use-live-translator";
 import { endsSentence, type Segment } from "@/lib/soniox/segments";
 import {
+  AUDIO_SOURCE_KEY,
   AUTO_PAUSE_KEY,
   AUTO_READ_KEY,
   ENGINE_KEY,
@@ -35,12 +36,14 @@ const AssistantPanel = dynamic(() => import("./assistant-panel").then((m) => m.A
 const HistoryScreen = dynamic(() => import("./history-screen").then((m) => m.HistoryScreen));
 const SettingsPanel = dynamic(() => import("./settings-panel").then((m) => m.SettingsPanel));
 import { getTtsPlayer } from "@/lib/browser/tts-player";
+import { canCaptureTab } from "@/lib/audio/sources";
 import { fixPronouns } from "@/lib/pronouns";
 import { getConversationType, pronounStyle } from "@/lib/conversation";
 import { voiceFor } from "@/lib/voices";
 import type { Gender } from "@/lib/audio/pitch";
-import { getLangPair, setLangPair, type LangPair } from "@/lib/languages";
+import { getLangPair, NOTES, setLangPair, type LangPair } from "@/lib/languages";
 import { LanguageBar } from "./language-bar";
+import { AiExportPanel } from "./ai-export";
 import { copyText } from "@/lib/browser/clipboard";
 import { isMine } from "./bubble";
 import { MicButton } from "./mic-button";
@@ -62,6 +65,7 @@ import {
   PlusIcon,
   SettingsIcon,
   NotebookIcon,
+  SparkleIcon,
   SpeakerIcon,
   SpeakerOffIcon,
 } from "./icons";
@@ -118,8 +122,13 @@ export function MeetingScreen() {
     genderOverridesRef.current = genderOverrides;
   }, [genderOverrides]);
   const getGenderOverride = useCallback((speaker?: string) => (speaker ? genderOverridesRef.current[speaker] : undefined), []);
+  const includeTab = useCallback(() => canCaptureTab() && readStorage(AUDIO_SOURCE_KEY) === "tab", []);
+  const noticeRef = useRef<(message: string) => void>(() => {});
+  const onNotice = useCallback((message: string) => noticeRef.current(message), []);
   const live = useLiveTranslator({
     getGenderOverride,
+    getIncludeTab: includeTab,
+    onNotice,
     getGlossary,
     getEngine,
     getMeetingContext,
@@ -148,10 +157,14 @@ export function MeetingScreen() {
   const [confirmNew, setConfirmNew] = useState(false);
   const [speakingId, setSpeakingId] = useState<number | null>(null);
   const { toast, dismiss } = useToast();
+  useEffect(() => {
+    noticeRef.current = (message) => toast({ id: "tab-audio", kind: "warning", message, duration: 6000 });
+  }, [toast]);
   const setToast = useCallback((message: string) => toast({ kind: "warning", message }), [toast]);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   // Tên của người dùng để báo khi sếp nhắc tới (đọc lại mỗi khi đóng Cài đặt).
   const [myNames, setMyNames] = useState(() => parseNames(readStorage(MY_NAMES_KEY)));
   const [view, setView] = useState<TranscriptView>(() => (readStorage(VIEW_KEY) === "bubbles" ? "bubbles" : "lines"));
@@ -614,9 +627,17 @@ export function MeetingScreen() {
 
   const toggleMic = () => {
     // Lần chạm này mở khoá âm thanh để về sau app tự đọc được (iPhone bắt buộc); tắt tự đọc thì không kết nối dịch vụ đọc.
-    getTtsPlayer().unlock(autoRead);
-    if (running) live.stop();
-    else void live.start();
+    getTtsPlayer().unlock(autoRead && pair.partner !== NOTES);
+    if (running) return live.stop();
+    if (includeTab())
+      toast({
+        id: "tab-audio",
+        kind: "info",
+        title: "Chọn tab cần nghe (vd. Google Meet)",
+        message: "Nhớ bật “Chia sẻ âm thanh của thẻ”. Nên đeo tai nghe để micro không thu lại tiếng loa.",
+        duration: 7000,
+      });
+    void live.start();
   };
 
   // Đổi ngôn ngữ nhanh từ thanh trên màn hình chính (đang nghe thì tự nối lại với cặp mới).
@@ -703,6 +724,7 @@ export function MeetingScreen() {
             </HeaderButton>
           )}
         </AnimatePresence>
+{pair.partner !== NOTES && (
         <HeaderButton label={autoRead ? "Tắt tự đọc bản dịch" : "Bật tự đọc bản dịch"} onClick={toggleAutoRead}>
           {autoRead ? (
             <motion.span
@@ -716,6 +738,7 @@ export function MeetingScreen() {
             <SpeakerOffIcon className="size-5 text-fg-3" />
           )}
         </HeaderButton>
+        )}
         <HeaderButton label="Lịch sử trò chuyện" onClick={() => setHistoryOpen(true)}>
           <ClockIcon className="size-5" />
         </HeaderButton>
@@ -823,7 +846,7 @@ export function MeetingScreen() {
       </div>
 
       <Sheet open={summaryOpen} onClose={() => setSummaryOpen(false)} title="Tóm tắt" icon={<NotebookIcon className="size-[18px]" />}>
-        <SummaryPanel api={summaryApi} segments={segments} running={running} names={names} onShare={shareCurrent} />
+        <SummaryPanel api={summaryApi} segments={segments} running={running} names={names} onShare={shareCurrent}  onAiExport={() => setAiOpen(true)} />
       </Sheet>
 
       <Sheet open={suggestOpen} onClose={() => setSuggestOpen(false)} title="Trợ lý" icon={<LightbulbIcon className="size-[18px]" />}>
@@ -841,6 +864,10 @@ export function MeetingScreen() {
         onSpeak={handleSpeak}
         onCopy={handleCopy}
       />
+
+      <Sheet open={aiOpen} onClose={() => setAiOpen(false)} title="Gửi cho AI" icon={<SparkleIcon className="size-[18px]" />}>
+        {aiOpen && <AiExportPanel meeting={currentMeeting} />}
+      </Sheet>
 
       <Sheet open={renaming !== null} onClose={() => setRenaming(null)} title="Đặt tên người nói">
         {renaming !== null && (

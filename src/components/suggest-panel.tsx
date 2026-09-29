@@ -171,7 +171,7 @@ export function SuggestPanel({
                   </span>
                   <p className={`mt-2 ${font} text-[21px] leading-snug font-medium`}>{s.zh}</p>
                   {s.pinyin && <p className="mt-1 text-[13px] leading-relaxed text-fg-3 italic">{s.pinyin}</p>}
-                  <p className="mt-2 text-[14px] leading-relaxed text-fg-2">{s.vi}</p>
+                  {s.vi.trim() !== s.zh.trim() && <p className="mt-2 text-[14px] leading-relaxed text-fg-2">{s.vi}</p>}
                   <div className="-mx-1.5 mt-2 flex flex-wrap gap-1">
                     <ActionButton label="Đọc" onClick={() => onSpeakZh(s.zh)}>
                       <SpeakerIcon className="size-[18px]" />

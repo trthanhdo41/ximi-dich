@@ -85,6 +85,13 @@ export const POPULAR_CODES = ["zh", "en", "ko", "ja", "th", "id", "ms", "tl", "f
 
 /** Đối tác nói nhiều thứ tiếng / không rõ → để Soniox tự nhận. */
 export const AUTO = "auto";
+/** Hai bên cùng nói tiếng của mình (có chen từ tiếng Anh) → chỉ ghi chép, không dịch, không đọc. */
+export const NOTES = "none";
+
+/** Đang ở chế độ chỉ ghi chép (không dịch). */
+export function isNotes(pair: LangPair = getLangPair()) {
+  return pair.partner === NOTES;
+}
 
 const BY_CODE = new Map(LANGUAGES.map((l) => [l.code, l]));
 
@@ -95,6 +102,7 @@ export function language(code?: string): Language | undefined {
 /** "Tiếng Trung", "Tiếng Anh"… (mã lạ thì trả lại mã). */
 export function langName(code?: string) {
   if (code === AUTO) return "Nhiều thứ tiếng";
+  if (code === NOTES) return "Không dịch";
   return language(code)?.name ?? (code ? code.toUpperCase() : "Không rõ");
 }
 
@@ -149,7 +157,7 @@ export function getLangPair(): LangPair {
   const partner = readStorage(PARTNER_LANG_KEY, DEFAULT_PAIR.partner);
   const mine = readStorage(MY_LANG_KEY, DEFAULT_PAIR.mine);
   cached = {
-    partner: partner === AUTO || BY_CODE.has(partner) ? partner : DEFAULT_PAIR.partner,
+    partner: partner === AUTO || partner === NOTES || BY_CODE.has(partner) ? partner : DEFAULT_PAIR.partner,
     mine: BY_CODE.has(mine) ? mine : DEFAULT_PAIR.mine,
   };
   return cached;
@@ -163,7 +171,10 @@ export function setLangPair(pair: LangPair) {
 
 /** Câu do bên mình nói (bằng ngôn ngữ của mình) → không cần dịch. */
 export function isMineLang(code?: string) {
-  return !!code && code === getLangPair().mine;
+  const pair = getLangPair();
+  // Chỉ ghi chép: mọi câu (kể cả từ tiếng Anh chen vào) đều là lời trong cuộc họp, không dịch.
+  if (pair.partner === NOTES) return true;
+  return !!code && code === pair.mine;
 }
 
 // ---- Nhận ngôn ngữ theo chữ viết ----
@@ -209,7 +220,7 @@ export const VI_LETTERS = /[ăâđêôơưạảấầẩẫậắằẳẵặ�
 export function detectLanguage(text: string, tagged: string | undefined, pair: LangPair) {
   if (!text.replace(/[\s\p{P}\p{S}\d]/gu, "")) return tagged;
   const { mine } = pair;
-  const partner = pair.partner === AUTO ? undefined : pair.partner;
+  const partner = pair.partner === AUTO || pair.partner === NOTES ? undefined : pair.partner;
   const mineLooksRight = (share: number) =>
     share >= 0.5 && (mine !== "vi" || tagged === "vi" || VI_LETTERS.test(text));
 

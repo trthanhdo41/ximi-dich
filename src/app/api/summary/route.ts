@@ -19,7 +19,9 @@ const GROQ_KEEP_TRANSLATION_CHARS = 6_000;
 function summarySystem(partner: string, conversation: ConversationType) {
   const zh = partner === "zh";
   const who =
-    partner === AUTO || !language(partner) ? "người nước ngoài (có thể nói nhiều thứ tiếng)" : `người nói ${langInline(partner)}`;
+    partner === "none"
+      ? "người khác (hai bên cùng nói tiếng Việt, có chen từ tiếng Anh)"
+      : partner === AUTO || !language(partner) ? "người nước ngoài (có thể nói nhiều thứ tiếng)" : `người nói ${langInline(partner)}`;
   const accent = zh
     ? "Người nói tiếng Trung có thể nói giọng địa phương nặng (Quảng Đông, Hồ Nam, Bắc Kinh…), nên bản ghi có thể nghe sai chữ. Hãy dựa vào câu gốc tiếng Trung là chính"
     : "Người nói có thể có giọng địa phương nặng, nên bản ghi có thể nghe sai chữ. Hãy dựa vào câu gốc là chính";

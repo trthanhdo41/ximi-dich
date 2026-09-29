@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { AUTO, LANGUAGES, langName, POPULAR_CODES, type LangPair } from "@/lib/languages";
+import { AUTO, LANGUAGES, langName, NOTES, POPULAR_CODES, type LangPair } from "@/lib/languages";
 import { SwapIcon } from "./icons";
 
 /** Danh sách chọn ngôn ngữ: hay dùng trước, còn lại theo vần. */
@@ -17,6 +17,7 @@ export function LanguageOptions({ exclude, allowAuto }: { exclude?: string; allo
   );
   return (
     <>
+      {allowAuto && <option value={NOTES}>Không dịch – chỉ ghi chép (cùng tiếng Việt)</option>}
       {allowAuto && <option value={AUTO}>Nhiều thứ tiếng (tự nhận)</option>}
       <optgroup label="Hay dùng">{popular.map(option)}</optgroup>
       <optgroup label="Tất cả">{others.map(option)}</optgroup>
@@ -24,7 +25,8 @@ export function LanguageOptions({ exclude, allowAuto }: { exclude?: string; allo
   );
 }
 
-const short = (code: string) => (code === AUTO ? "Tự nhận" : langName(code).replace(/^Tiếng /, ""));
+const short = (code: string) =>
+  code === AUTO ? "Tự nhận" : code === NOTES ? "Chỉ ghi chép" : langName(code).replace(/^Tiếng /, "");
 
 /** Một ô ngôn ngữ: chạm vào là mở danh sách chọn có sẵn của máy. */
 function LangPill({
@@ -58,7 +60,7 @@ function LangPill({
 /** Thanh chọn nhanh ngôn ngữ trên màn hình chính: [tiếng của bạn] ⇄ [tiếng người kia]. */
 export function LanguageBar({ pair, onChange }: { pair: LangPair; onChange: (pair: LangPair) => void }) {
   const [turns, setTurns] = useState(0);
-  const canSwap = pair.partner !== AUTO;
+  const canSwap = pair.partner !== AUTO && pair.partner !== NOTES;
   return (
     <div className="flex items-center gap-2">
       <LangPill label="Bạn nói" value={pair.mine} exclude={pair.partner} onChange={(mine) => onChange({ ...pair, mine })} />

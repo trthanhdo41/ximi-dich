@@ -10,6 +10,9 @@ Thiết kế & phát triển bởi **Độ Ximitech**.
 - **Dịch theo nghĩa người bản xứ**: AI dịch lại từng câu cho đúng thành ngữ, tiếng lóng, kèm giải thích.
 - **Đọc to bản dịch** bằng giọng AI tự nhiên, sau mỗi câu hoặc ngay khi đang nói. Tắt được để đỡ tốn tiền.
 - **Xưng hô đúng**: đoán giọng nam/nữ ngay trên máy (nam "anh – em", nữ "em – anh"; bạn bè "mình – bạn").
+- **Chỉ ghi chép (không dịch)** cho cuộc họp cùng tiếng Việt, nghe đúng cả từ tiếng Anh chen vào (website, scope, budget…).
+- **Gửi cho AI**: chép lời nhờ soạn sẵn (báo giá, hợp đồng / phạm vi, biên bản, spec, email) + toàn bộ cuộc trò chuyện, mở ChatGPT / Claude để dán. Sửa được mẫu lời nhờ.
+- **Nghe thẳng tab họp online** (Google Meet, Zoom web…) trên máy tính, gộp với micro.
 - **Tóm tắt, gợi ý câu trả lời, hỏi AI** về nội dung đang nói.
 - Pinyin cho tiếng Trung, đánh dấu câu quan trọng, báo khi có người gọi tên mình.
 - Tự tạm dừng khi im lặng, tự kết nối lại khi mất mạng.

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
+  AUDIO_SOURCE_KEY,
   AUTO_PAUSE_KEY,
   AUTO_READ_KEY,
   CONVERSATION_KEY,
@@ -28,7 +29,8 @@ import { loadPinyin } from "@/lib/pinyin";
 import { CONVERSATIONS, getConversationType, type ConversationType } from "@/lib/conversation";
 import { getTtsPlayer } from "@/lib/browser/tts-player";
 import { voicesFor } from "@/lib/voices";
-import { AUTO, getLangPair, langName, setLangPair, type LangPair } from "@/lib/languages";
+import { AUTO, getLangPair, langName, NOTES, setLangPair, type LangPair } from "@/lib/languages";
+import { canCaptureTab } from "@/lib/audio/sources";
 import { LanguageOptions } from "./language-bar";
 import { Credit } from "./brand";
 import {
@@ -266,6 +268,7 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
   const [pinyin, setPinyin] = useState(() => readStorage(PINYIN_KEY, "1") !== "0");
   const [pair, setPair] = useState<LangPair>(getLangPair);
   const [conversation, setConversation] = useState<ConversationType>(getConversationType);
+  const [audioSource, setAudioSource] = useState(() => (readStorage(AUDIO_SOURCE_KEY) === "tab" ? "tab" : "mic"));
   const [autoRead, setAutoRead] = useState(() => readStorage(AUTO_READ_KEY, "1") !== "0");
   const [readMine, setReadMine] = useState(() => readStorage(READ_MINE_KEY, "1") !== "0");
   const [readMode, setReadMode] = useState(() => (readStorage(READ_MODE_KEY, "accurate") === "live" ? "live" : "accurate"));
@@ -322,6 +325,12 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
             onChange={(mine) => changePair({ ...pair, mine })}
           />
         </div>
+        {pair.partner === NOTES && (
+          <p className="mt-2 text-[13px] leading-relaxed text-fg-2">
+            Chỉ ghi chép: dùng khi hai bên cùng nói tiếng Việt (có chen từ tiếng Anh như website, scope, budget…). App ghi lại
+            đúng lời, không dịch, không đọc to.
+          </p>
+        )}
         {pair.partner === AUTO && (
           <p className="mt-2 text-[13px] leading-relaxed text-fg-2">
             Dùng khi nói chuyện với nhiều người, nhiều thứ tiếng. App tự nhận từng câu là tiếng gì, nhưng kém chính xác hơn khi chọn sẵn
@@ -330,6 +339,40 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
         )}
         {running && <p className="mt-2 text-[13px] text-fg-2">Sẽ áp dụng từ lần bấm nghe tiếp theo.</p>}
       </motion.section>
+
+      {canCaptureTab() && (
+        <motion.section variants={item}>
+          <Label icon={<WaveIcon className="size-4" />}>Nguồn âm thanh</Label>
+          <p className="mt-1 text-[13px] leading-relaxed text-fg-2">
+            Họp online (Google Meet, Zoom trên web…): chọn “Micro + tab” để app nghe thẳng tiếng trong tab, rõ hơn nhiều so với
+            nghe qua loa. Khi bấm nghe, chọn tab cuộc họp và bật “Chia sẻ âm thanh của thẻ”.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {(
+              [
+                ["mic", "Micro", "Nói chuyện trực tiếp"],
+                ["tab", "Micro + tab", "Họp online trên máy tính"],
+              ] as const
+            ).map(([value, title, desc]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setAudioSource(value);
+                  writeStorage(AUDIO_SOURCE_KEY, value);
+                }}
+                className={`rounded-2xl p-3 text-left ring-1 transition-colors ${
+                  audioSource === value ? "bg-accent-soft ring-accent/50" : "bg-surface-2 ring-line"
+                }`}
+              >
+                <span className="block text-[14px] font-semibold">{title}</span>
+                <span className="mt-0.5 block text-[12px] leading-snug text-fg-2">{desc}</span>
+              </button>
+            ))}
+          </div>
+          {running && <p className="mt-2 text-[13px] text-fg-2">Sẽ áp dụng từ lần bấm nghe tiếp theo.</p>}
+        </motion.section>
+      )}
 
       <motion.section variants={item}>
         <Label icon={<ChatsIcon className="size-4" />}>Kiểu trò chuyện</Label>
@@ -356,6 +399,9 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
         </div>
       </motion.section>
 
+      {/* Chỉ ghi chép thì không có gì để đọc to → ẩn cho gọn. */}
+      {pair.partner !== NOTES && (
+        <>
       <motion.h3 variants={item} className="pt-2 text-[12px] font-bold tracking-[0.08em] text-fg-3 uppercase">
         Đọc to
       </motion.h3>
@@ -430,6 +476,9 @@ export function SettingsPanel({ running, onDone }: { running: boolean; onDone: (
         </div>
         )}
       </motion.section>
+
+        </>
+      )}
 
       <motion.h3 variants={item} className="pt-2 text-[12px] font-bold tracking-[0.08em] text-fg-3 uppercase">
         Hiển thị

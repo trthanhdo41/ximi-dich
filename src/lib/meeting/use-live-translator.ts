@@ -18,7 +18,7 @@ import {
   DEFAULT_STT_OPTIONS,
   parseGlossary,
 } from "@/lib/soniox/config";
-import { AUTO, bcp47, getLangPair } from "@/lib/languages";
+import { AUTO, bcp47, getLangPair, NOTES } from "@/lib/languages";
 import { genderOf, medianPitch, type Gender } from "@/lib/audio/pitch";
 import { getConversationType } from "@/lib/conversation";
 import { SegmentBuilder, type Segment } from "@/lib/soniox/segments";
@@ -93,6 +93,10 @@ type Options = {
   initialSegments?: Segment[];
   /** Giới tính người dùng tự chọn cho người nói (ghi đè kết quả tự đoán theo giọng). */
   getGenderOverride?: (speaker?: string) => Gender | undefined;
+  /** Nghe thêm âm thanh của một tab (Google Meet…) trên máy tính. */
+  getIncludeTab?: () => boolean;
+  /** Báo nhẹ (không dừng nghe), vd. vấn đề với âm thanh tab. */
+  onNotice?: (message: string) => void;
 };
 
 export function useLiveTranslator({
@@ -103,6 +107,8 @@ export function useLiveTranslator({
   getRefine,
   initialSegments,
   getGenderOverride,
+  getIncludeTab,
+  onNotice,
 }: Options) {
   const [initialBuilder] = useState(() => {
     const b = new SegmentBuilder();
@@ -317,7 +323,8 @@ export function useLiveTranslator({
   const startMic = useCallback(async () => {
     // Phải gọi trong sự kiện chạm/bấm (iOS Safari).
     const ctx = createAudioContext();
-    const mic = new MicSource(ctx, true);
+    const mic = new MicSource(ctx, true, getIncludeTab?.() ?? false);
+    mic.onTabIssue = (message) => onNotice?.(message);
     mic.onEnded = () => {
       if (runningRef.current && micRef.current === mic) setState("interrupted");
     };
@@ -325,7 +332,7 @@ export function useLiveTranslator({
     micRef.current = mic;
     await mic.start(handleChunk);
     setAnalyser(mic.analyser ?? null);
-  }, [handleChunk]);
+  }, [handleChunk, getIncludeTab, onNotice]);
 
   // ---- Gọi AI dịch một câu theo nghĩa bản địa (trả về bản dịch + ghi chú thành ngữ) ----
   const requestTranslation = useCallback(
@@ -419,7 +426,7 @@ export function useLiveTranslator({
   const refineSegment = useCallback(
     (b: SegmentBuilder, seg: Segment) => {
       const text = seg.originalFinal.trim();
-      if (!text || !seg.language || seg.language === b.languages.mine) return;
+      if (!text || !seg.language || seg.language === b.languages.mine || b.languages.partner === NOTES) return;
       b.patch(seg.id, { refining: true });
       refineQueueRef.current.push(async () => {
         try {
@@ -517,6 +524,8 @@ export function useLiveTranslator({
         if (engineRef.current) return;
         const gender = detectGender(seg);
         if (gender && gender !== seg.gender) b.patch(seg.id, { gender });
+        // Chỉ ghi chép: không dịch câu nào.
+        if (b.languages.partner === NOTES) return;
         if (seg.language === b.languages.mine) {
           // Lời mình: Soniox đã dịch sẵn sang tiếng đối tác (dịch hai chiều). Chỉ khi "tự nhận nhiều thứ tiếng"
           // (Soniox không biết dịch sang tiếng nào) mới nhờ AI dịch sang thứ tiếng đối tác nói nhiều nhất.
@@ -575,7 +584,7 @@ export function useLiveTranslator({
     }
     // Nhận giọng của máy chỉ nghe được một thứ tiếng: tiếng của đối tác ("tự nhận" → tiếng Trung).
     const pair = builderRef.current.languages;
-    const heard = pair.partner === AUTO ? "zh" : pair.partner;
+    const heard = pair.partner === NOTES ? pair.mine : pair.partner === AUTO ? "zh" : pair.partner;
     const zh = (text: string, is_final: boolean) => ({ text, is_final, language: heard, translation_status: "original" as const });
     const engine = new BrowserSpeechEngine({
       onStart: () => {

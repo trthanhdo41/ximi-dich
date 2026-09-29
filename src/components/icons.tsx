@@ -17,6 +17,7 @@ import {
   Clock,
   Copy,
   Download,
+  ExternalLink,
   FileText,
   Globe,
   Heart,
@@ -84,6 +85,7 @@ export const ChevronDownIcon = wrap(ChevronDown, 2.2);
 export const GlobeIcon = wrap(Globe);
 export const ShareIcon = wrap(Share2);
 export const DownloadIcon = wrap(Download);
+export const ExternalIcon = wrap(ExternalLink);
 export const TrashIcon = wrap(Trash2);
 export const BellIcon = wrap(Bell);
 export const BellRingIcon = wrap(BellRing, 2.1);

@@ -1,6 +1,6 @@
 // Cấu hình phiên Soniox real-time. Docs: https://soniox.com/docs/stt/api-reference/websocket-api
 
-import { AUTO, DEFAULT_PAIR, englishName, type LangPair } from "../languages";
+import { AUTO, DEFAULT_PAIR, englishName, NOTES, type LangPair } from "../languages";
 import type { ConversationType } from "../conversation";
 
 export const SONIOX_WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
@@ -34,7 +34,26 @@ export const DEFAULT_STT_OPTIONS: SttOptions = {
 };
 
 /** Bối cảnh gửi Soniox: loại cuộc trò chuyện + cách dịch theo nghĩa + xưng hô tiếng Việt. */
+/** Từ tiếng Anh hay chen vào khi họp làm web / app / kinh doanh – giúp Soniox nghe đúng (chế độ ghi chép). */
+export const ENGLISH_KEYWORDS = [
+  "website", "web app", "mobile app", "landing page", "scope", "budget", "deadline", "timeline", "milestone",
+  "feature", "UI", "UX", "UI/UX", "design", "wireframe", "prototype", "frontend", "backend", "API", "database",
+  "server", "hosting", "domain", "deploy", "SEO", "CMS", "admin", "dashboard", "responsive", "MVP", "demo",
+  "requirement", "spec", "brief", "proposal", "quotation", "contract", "invoice", "payment", "maintenance",
+  "support", "bug", "fix", "update", "version", "plugin", "WordPress", "Shopify", "React", "Next.js", "Flutter",
+  "iOS", "Android", "App Store", "Google Play", "login", "checkout", "e-commerce", "CRM", "ERP", "KPI", "ROI",
+  "marketing", "branding", "logo", "content", "copywriting", "ads", "Facebook", "TikTok", "Zalo", "Google Meet",
+];
+
 export function backgroundFor(pair: LangPair, conversation: ConversationType = "auto") {
+  if (pair.partner === NOTES) {
+    const mine = englishName(pair.mine);
+    return (
+      `A ${mine} conversation or meeting (e.g. consulting a client about a website or app project). Both sides speak ${mine}, ` +
+      `often mixing in English words for tech and business terms (website, scope, budget, deadline, UI/UX, backend…). ` +
+      `Transcribe exactly; keep English words in English spelling.`
+    );
+  }
   const mine = englishName(pair.mine);
   const partner = pair.partner === AUTO ? "a foreign language" : englishName(pair.partner);
   const scene = {
@@ -64,17 +83,23 @@ export function backgroundFor(pair: LangPair, conversation: ConversationType = "
 
 export function buildSonioxConfig(apiKey: string, opts: SttOptions, pair: LangPair = DEFAULT_PAIR) {
   const auto = pair.partner === AUTO;
+  const notes = pair.partner === NOTES;
   const context: Record<string, unknown> = {
     general: [
       { key: "domain", value: "Everyday conversation" },
       {
         key: "languages",
-        value: auto ? `${englishName(pair.mine)} and other languages` : `${englishName(pair.partner)} and ${englishName(pair.mine)}`,
+        value: notes
+          ? `${englishName(pair.mine)} with English keywords`
+          : auto
+            ? `${englishName(pair.mine)} and other languages`
+            : `${englishName(pair.partner)} and ${englishName(pair.mine)}`,
       },
     ],
   };
   if (opts.backgroundText.trim()) context.text = opts.backgroundText.trim();
-  if (opts.terms.length) context.terms = opts.terms;
+  const terms = notes ? [...new Set([...opts.terms, ...ENGLISH_KEYWORDS])] : opts.terms;
+  if (terms.length) context.terms = terms;
   if (opts.translationTerms.length) context.translation_terms = opts.translationTerms;
 
   return {
@@ -84,7 +109,8 @@ export function buildSonioxConfig(apiKey: string, opts: SttOptions, pair: LangPa
     sample_rate: SAMPLE_RATE,
     num_channels: 1,
     // Biết trước 2 thứ tiếng → nghe chính xác nhất; "tự nhận" thì để Soniox tự đoán mọi thứ tiếng.
-    language_hints: auto ? [pair.mine] : [pair.partner, pair.mine],
+    // Chỉ ghi chép: tiếng của mình + tiếng Anh (từ chuyên môn chen vào).
+    language_hints: notes ? [pair.mine, "en"] : auto ? [pair.mine] : [pair.partner, pair.mine],
     language_hints_strict: !auto && opts.strictLanguages,
     enable_language_identification: true,
     enable_speaker_diarization: opts.diarization,
@@ -96,9 +122,14 @@ export function buildSonioxConfig(apiKey: string, opts: SttOptions, pair: LangPa
     // Dịch cả hai chiều: đối tác nói → tiếng của mình, mình nói → tiếng của đối tác.
     // "Tự nhận nhiều thứ tiếng" thì không biết dịch lời mình sang tiếng nào → chỉ dịch về tiếng của mình
     // (lời mình được AI dịch sang thứ tiếng đối tác nói nhiều nhất).
-    translation: auto
-      ? { type: "one_way", target_language: pair.mine }
-      : { type: "two_way", language_a: pair.partner, language_b: pair.mine },
+    // Chỉ ghi chép thì không dịch.
+    ...(notes
+      ? {}
+      : {
+          translation: auto
+            ? { type: "one_way", target_language: pair.mine }
+            : { type: "two_way", language_a: pair.partner, language_b: pair.mine },
+        }),
   };
 }
 

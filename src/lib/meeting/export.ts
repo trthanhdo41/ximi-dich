@@ -42,7 +42,7 @@ export function meetingToMarkdown(m: SavedMeeting): string {
 
 export function downloadMarkdown(m: SavedMeeting) {
   const d = new Date(m.startedAt);
-  const name = `bien-ban-hop-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.md`;
+  const name = `tro-chuyen-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.md`;
   const url = URL.createObjectURL(new Blob([meetingToMarkdown(m)], { type: "text/markdown;charset=utf-8" }));
   const a = document.createElement("a");
   a.href = url;

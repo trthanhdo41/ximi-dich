@@ -36,20 +36,64 @@ function createWaveAnalyser(ctx: AudioContext) {
   return analyser;
 }
 
+/** Máy tính có lấy được âm thanh của một tab (Google Meet, Zoom web…) không – điện thoại thì không. */
+export function canCaptureTab() {
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) return false;
+  return !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
 export class MicSource implements AudioSource {
   private stream?: MediaStream;
+  private tabStream?: MediaStream;
   private node?: AudioWorkletNode;
   private sourceNode?: MediaStreamAudioSourceNode;
+  private tabNode?: MediaStreamAudioSourceNode;
   /** Phổ tần số thật của micro, để vẽ sóng âm. */
   analyser?: AnalyserNode;
   onEnded?: () => void;
+  /** Có vấn đề với âm thanh tab (không chọn tab, không bật chia sẻ âm thanh, dừng chia sẻ…) – vẫn nghe micro. */
+  onTabIssue?: (message: string) => void;
+  /** Đang nghe cả âm thanh tab. */
+  tabActive = false;
 
   constructor(
     private ctx: AudioContext,
     private browserProcessing: boolean,
+    /** Nghe thêm âm thanh của một tab (vd. Google Meet) – chỉ trên máy tính. */
+    private includeTab = false,
   ) {}
 
+  /** Xin chia sẻ âm thanh tab (gọi sớm, ngay sau lần bấm, để trình duyệt cho mở hộp chọn tab). */
+  private async openTab() {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+        // Gợi ý cho Chrome: ưu tiên chọn tab, có âm thanh.
+        preferCurrentTab: false,
+        selfBrowserSurface: "exclude",
+        systemAudio: "include",
+      } as DisplayMediaStreamOptions);
+      // Chỉ cần tiếng, bỏ hình cho nhẹ máy.
+      stream.getVideoTracks().forEach((t) => t.stop());
+      const track = stream.getAudioTracks()[0];
+      if (!track) {
+        this.onTabIssue?.("Chưa bật “Chia sẻ âm thanh của thẻ” nên chỉ nghe được micro. Bấm dừng rồi nghe lại để chọn lại.");
+        return;
+      }
+      track.addEventListener("ended", () => {
+        this.tabActive = false;
+        this.tabNode?.disconnect();
+        this.onTabIssue?.("Đã dừng chia sẻ âm thanh tab – giờ chỉ nghe micro.");
+      });
+      this.tabStream = stream;
+    } catch {
+      this.onTabIssue?.("Chưa chọn tab để nghe nên chỉ nghe được micro.");
+    }
+  }
+
   async start(onChunk: ChunkHandler) {
+    if (this.includeTab) await this.openTab();
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
@@ -63,12 +107,23 @@ export class MicSource implements AudioSource {
 
     await this.ctx.audioWorklet.addModule("/pcm-worklet.js");
     await this.ctx.resume();
+    // Trộn micro (+ tab) thành một kênh rồi mới gửi đi.
+    const mix = this.ctx.createGain();
+    mix.channelCount = 1;
+    mix.channelCountMode = "explicit";
+    mix.channelInterpretation = "speakers";
     this.sourceNode = this.ctx.createMediaStreamSource(this.stream);
+    this.sourceNode.connect(mix);
+    if (this.tabStream) {
+      this.tabNode = this.ctx.createMediaStreamSource(this.tabStream);
+      this.tabNode.connect(mix);
+      this.tabActive = true;
+    }
     this.analyser = createWaveAnalyser(this.ctx);
-    this.sourceNode.connect(this.analyser);
+    mix.connect(this.analyser);
     this.node = new AudioWorkletNode(this.ctx, "pcm-downsampler");
     this.node.port.onmessage = (e: MessageEvent<PcmChunk>) => onChunk(e.data);
-    this.sourceNode.connect(this.node);
+    mix.connect(this.node);
     // Nối vào destination để trình duyệt chịu chạy worklet; worklet không xuất âm thanh.
     this.node.connect(this.ctx.destination);
   }
@@ -77,7 +132,9 @@ export class MicSource implements AudioSource {
     this.node?.port.close();
     this.node?.disconnect();
     this.sourceNode?.disconnect();
+    this.tabNode?.disconnect();
     this.stream?.getTracks().forEach((t) => t.stop());
+    this.tabStream?.getTracks().forEach((t) => t.stop());
     void this.ctx.close();
   }
 }

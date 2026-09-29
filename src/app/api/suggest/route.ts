@@ -46,7 +46,7 @@ Hãy trả về:
 2. "suggestions": đúng 3 cách trả lời khác nhau, ${tone}:
    - "label": nhãn ngắn tiếng Việt (vd. ${labels}).
    - "vi": câu trả lời bằng tiếng Việt để người dùng hiểu.
-   - "zh": cùng ý bằng ${name} (${native}) tự nhiên như người bản xứ nói, 1–3 câu. (Tên trường là "zh" nhưng nội dung PHẢI là ${name}.)
+   - "zh": ${partner === "vi" ? `chép lại đúng câu "vi" (người kia cũng nói tiếng Việt)` : `cùng ý bằng ${name} (${native}) tự nhiên như người bản xứ nói, 1–3 câu. (Tên trường là "zh" nhưng nội dung PHẢI là ${name}.)`}
    - "pinyin": ${reading}
 Nếu người dùng cho biết "ý muốn nói" thì cả 3 gợi ý phải bám theo ý đó.
 Không bịa số liệu, ngày giờ, tên người; chỗ cần thông tin cụ thể thì để trống dạng [số liệu] / [ngày].${partner === "zh" ? "\nQuy đổi đúng: 周一 = thứ Hai … 周三 = thứ Tư … 周日 = Chủ nhật; 块/元 = tệ." : ""}
@@ -73,6 +73,7 @@ function hanRatio(text: string) {
 /** "vi" phải là tiếng Việt, "zh" phải là tiếng của đối tác (AI đôi khi viết nhầm ngôn ngữ). */
 function validSuggestion(s: Suggestion, partner: string) {
   if (!s || typeof s.zh !== "string" || typeof s.vi !== "string" || !s.zh.trim()) return false;
+  if (partner === "vi") return true;
   if (partner === "zh") return hanRatio(s.vi) < 0.2 && hanRatio(s.zh) > 0.5;
   if (scriptOf(partner) !== "Latin") return scriptShare(s.vi, partner) < 0.2 && scriptShare(s.zh, partner) > 0.5;
   return !VI_LETTERS.test(s.zh);
@@ -108,7 +109,8 @@ export async function POST(request: Request) {
   const context = (body.context ?? "").trim().slice(-MAX_CONTEXT_CHARS);
   if (!context) return Response.json({ error: "Chưa có nội dung trò chuyện để gợi ý." }, { status: 400 });
 
-  const partner = language(body.partner) && body.partner !== "vi" ? body.partner! : "zh";
+  // Người kia cũng nói tiếng Việt (chế độ ghi chép) → gợi ý bằng tiếng Việt.
+  const partner = language(body.partner) ? body.partner! : "zh";
   const system = suggestSystem(partner, isConversationType(body.conversation) ? body.conversation : "auto");
   const input = [
     body.glossary?.trim() ? `Tên riêng / thuật ngữ:\n${body.glossary.trim()}` : "",

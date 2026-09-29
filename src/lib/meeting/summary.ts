@@ -1,6 +1,6 @@
 import type { Segment } from "@/lib/soniox/segments";
 import { VnError } from "@/lib/errors";
-import { AUTO, getLangPair, langInline } from "@/lib/languages";
+import { AUTO, getLangPair, langInline, NOTES } from "@/lib/languages";
 
 /** Đánh dấu lỗi giữa dòng stream (mã HTTP không đổi được sau khi đã bắt đầu gửi). */
 export const SUMMARY_ERROR_MARK = "@@ERROR@@";
@@ -45,6 +45,8 @@ export function buildTranscript(segments: Segment[], names?: SpeakerNames): stri
  */
 export function partnerOf(segments: Segment[]) {
   const { partner, mine } = getLangPair();
+  // Chỉ ghi chép: hai bên cùng nói tiếng của mình.
+  if (partner === NOTES) return mine;
   if (partner !== AUTO) return partner;
   const count = new Map<string, number>();
   for (const s of segments) if (s.language && s.language !== mine) count.set(s.language, (count.get(s.language) ?? 0) + 1);

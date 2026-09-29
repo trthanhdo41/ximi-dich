@@ -11,7 +11,9 @@ import { usePinyinReady } from "@/lib/pinyin";
 import { isMine } from "./bubble";
 import { TranscriptItem, type TranscriptView } from "./transcript-item";
 import { EmptyHint, SummaryBody } from "./summary-panel";
-import { ChatIcon, ChevronLeftIcon, ClockIcon, CopyIcon, DownloadIcon, ShareIcon, NotebookIcon, StarIcon, TimerIcon, TrashIcon } from "./icons";
+import { ChatIcon, ChevronLeftIcon, ClockIcon, CopyIcon, DownloadIcon, ShareIcon, NotebookIcon, SparkleIcon, StarIcon, TimerIcon, TrashIcon } from "./icons";
+import { AiExportPanel } from "./ai-export";
+import { Sheet } from "./sheet";
 
 /**
  * Nút xoá chạm 2 lần: lần 1 chuyển đỏ "Xoá?", lần 2 mới xoá thật; để yên 3 giây thì tự trở lại.
@@ -343,6 +345,7 @@ function MeetingDetail({
 }) {
   const { toast } = useToast();
   const [onlyStars, setOnlyStars] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [pinyinOn] = useState(() => readStorage(PINYIN_KEY, "1") !== "0");
   const pinyin = usePinyinReady(pinyinOn);
   const shown = onlyStars ? m.segments.filter((s) => s.starred) : m.segments;
@@ -364,7 +367,8 @@ function MeetingDetail({
       </p>
 
       <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4">
-        <ActionChip onClick={share} icon={<ShareIcon className="size-[18px]" />} label="Chia sẻ" primary />
+        <ActionChip onClick={() => setAiOpen(true)} icon={<SparkleIcon className="size-[18px]" />} label="Gửi cho AI" primary />
+        <ActionChip onClick={share} icon={<ShareIcon className="size-[18px]" />} label="Chia sẻ" />
         <ActionChip
           onClick={() => {
             downloadMarkdown(m);
@@ -381,6 +385,10 @@ function MeetingDetail({
           label="Chép"
         />
       </div>
+
+      <Sheet open={aiOpen} onClose={() => setAiOpen(false)} title="Gửi cho AI" icon={<SparkleIcon className="size-[18px]" />}>
+        {aiOpen && <AiExportPanel meeting={m} />}
+      </Sheet>
 
       {m.summary?.vi && (
         <section className="mt-5 rounded-[22px] bg-surface p-4 ring-1 ring-line">

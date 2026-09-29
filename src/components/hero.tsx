@@ -3,7 +3,7 @@
 // Màn chờ (chưa họp): tối giản, một hành động chính.
 // Sóng âm nền chạy ngang qua nút micro.
 
-import { AUTO, getLangPair, langInline } from "@/lib/languages";
+import { AUTO, getLangPair, langInline, NOTES } from "@/lib/languages";
 import { motion, useMotionValue } from "motion/react";
 import type { LiveState } from "@/lib/meeting/use-live-translator";
 import { MicButton } from "./mic-button";
@@ -36,7 +36,9 @@ export function Hero({ state, onPress }: { state: LiveState; onPress: () => void
         Chạm để bắt đầu nghe
       </motion.h1>
       <motion.p variants={item} className="mt-2 max-w-[19rem] text-[15px] leading-relaxed text-fg-2">
-        Đặt điện thoại giữa hai người — người kia nói {partnerText()}, app dịch và đọc cho cả hai bên.
+        {getLangPair().partner === NOTES
+          ? "Chế độ ghi chép: app ghi lại lời của mọi người (kể cả từ tiếng Anh chen vào), không dịch. Xong thì bấm Tóm tắt hoặc Gửi cho AI."
+          : <>Đặt điện thoại giữa hai người — người kia nói {partnerText()}, app dịch và đọc cho cả hai bên.</>}
       </motion.p>
 
 
